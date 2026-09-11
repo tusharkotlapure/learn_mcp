@@ -82,6 +82,50 @@ def convert_mcp_resources_to_llm_tool(mcp_resources):
     }
 
 
+def convert_mcp_prompts_to_llm_tool(mcp_prompts):
+    """Expose MCP prompts to the LLM as a prompt-selection function."""
+
+    prompt_descriptions = []
+
+    for prompt in mcp_prompts:
+        prompt_descriptions.append(
+            {
+                "name": prompt.name,
+                "description": prompt.description,
+            }
+        )
+
+    return {
+        "type": "function",
+        "function": {
+            "name": "get_mcp_prompt",
+            "description": (
+                "Get a reusable MCP prompt. "
+                "Use this when the user asks for an analysis or task "
+                "that matches one of the available prompts."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": (
+                            "Name of the MCP prompt to use. "
+                            f"Available prompts: "
+                            f"{json.dumps(prompt_descriptions)}"
+                        ),
+                    },
+                    "arguments": {
+                        "type": "object",
+                        "description": ("Arguments required by the selected prompt."),
+                    },
+                },
+                "required": ["name", "arguments"],
+            },
+        },
+    }
+
+
 async def main():
 
     # --------------------------------------------------
@@ -130,11 +174,30 @@ async def main():
         print(json.dumps(llm_resources, indent=2))
 
         llm_tools.append(llm_resources)
+
+        # --------------------------------------------------
+        # Discover MCP prompts
+        # --------------------------------------------------
+
+        prompt_result = await client.list_prompts()
+
+        print("\nMCP prompts:")
+
+        for prompt in prompt_result.prompts:
+            print(f"- {prompt.name}")
+
+        llm_prompts = convert_mcp_prompts_to_llm_tool(prompt_result.prompts)
+
+        print("\nPrompts sent to LLM:")
+        print(json.dumps(llm_prompts, indent=2))
+
+        llm_tools.append(llm_prompts)
+
         # --------------------------------------------------
         # 4. User question
         # --------------------------------------------------
 
-        user_message = "can you tell me about tusharkotlapure/react-redux-task github repo latest commit? Also can you check in which unit of python notes CONTROL FLOW, LOOPS are covered?"
+        user_message = "I want analysis of train no: 12116 get info from this document https://wr.indianrailways.gov.in/ticker/1443706517885TT.pdf"
 
         print(f"\nUser: {user_message}")
 
@@ -202,6 +265,24 @@ async def main():
 
                     result_text = resource_result.contents[0].text
 
+                elif tool_name == "get_mcp_prompt":
+                    prompt_name = arguments["name"]
+                    prompt_arguments = arguments["arguments"]
+
+                    print("\nLLM requested prompt:")
+                    print("Name:", prompt_name)
+                    print("Arguments:", prompt_arguments)
+
+                    prompt_result = await client.get_prompt(
+                        prompt_name,
+                        arguments=prompt_arguments,
+                    )
+
+                    result_text = "\n".join(
+                        message.content.text
+                        for message in prompt_result.messages
+                        if hasattr(message.content, "text")
+                    )
                 else:
 
                     tool_result = await client.call_tool(

@@ -102,6 +102,7 @@ def customer_resource(customer_id: int) -> str:
         }
     )
 
+
 @mcp.resource("documents://python-notes")
 async def python_notes() -> str:
     """Python programming notes."""
@@ -109,6 +110,7 @@ async def python_notes() -> str:
     path = "/Users/t.kotlapure/Downloads/PYTHON PROGRAMMING NOTES.pdf"
 
     return extract_text_from_file(path)
+
 
 @mcp.resource("documents://ai-ml-notes")
 async def ai_ml_notes() -> str:
@@ -118,19 +120,45 @@ async def ai_ml_notes() -> str:
 
     return extract_text_from_file(path)
 
+
 @mcp.prompt()
 def analyze_customer(customer_id: int) -> str:
     """Analyze a customer's account."""
 
     return f"""
-Analyze customer {customer_id}.
+        Analyze customer {customer_id}.
 
-Please provide:
-1. Customer status
-2. Current balance
-3. Any potential concerns
-4. A short recommendation
-"""
+        Please provide:
+        1. Customer status
+        2. Current balance
+        3. Any potential concerns
+        4. A short recommendation
+        """
+
+
+@mcp.prompt()
+def analyze_train_service_document(question: str) -> str:
+    """Provide instructions for analyzing a document."""
+
+    return f"""
+        You are a document analysis assistant.
+
+        The user wants an answer to this question:
+
+        {question}
+
+        Follow these rules:
+
+        1. Use the read_document tool to retrieve the document if its
+        contents are not already available.
+        2. Carefully search the complete document for information relevant
+        to the question.
+        3. Answer only using information found in the document.
+        4. If the requested information is not present, explicitly say
+        that it was not found.
+        5. Do not invent information.
+        6. If possible, mention the relevant section or heading.
+        """
 
 
 @mcp.tool()
