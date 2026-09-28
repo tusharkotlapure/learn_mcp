@@ -46,12 +46,15 @@ async def main():
         llm_tools.append(convert_mcp_prompts_to_llm_tool(mcp_prompts.prompts))
 
         # User question
-        user_message = (
-            "I want analysis of train no: 12116 "
-            "from this document "
-            "https://wr.indianrailways.gov.in/"
-            "ticker/1443706517885TT.pdf"
-        )
+        user_message = """
+            Read this PDF:
+            https://www.w3.org/Press/99Folio.pdf
+
+            Answer these questions strictly from the document:
+            1. What is the document about?
+            2. What are the main sections?
+            3. Give me one specific fact mentioned in the document.
+            """
 
         # Create agent
         agent = MCPAgent(
